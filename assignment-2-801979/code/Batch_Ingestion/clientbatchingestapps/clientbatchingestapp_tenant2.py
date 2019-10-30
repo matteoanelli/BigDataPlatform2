@@ -4,7 +4,7 @@
 import sys, os
 import csv
 import pymongo
-
+print('Ingesting app tenant2..............')
 class sourceIngestion:
     def __init__(self, part_id, ts_date, ts_time, room):
         self.part_id = int(part_id)
@@ -21,9 +21,9 @@ class sourceIngestion:
         }
         return data
 
-client = pymongo.MongoClient(os.environ.get('MONGO_URL'))
-db = client.get_database('test')
-records = db.documents
+client = pymongo.MongoClient('mongodb+srv://tennant2:Rm2U0c1OtW3hsZWn@mysimbdp-coredms-novzr.mongodb.net/test?retryWrites=true&w=majority')
+db = client.get_database('test_tenant2')
+records = db.documents_tenant2
 
 with open(sys.argv[1]) as f:
     reader = csv.reader(f)
@@ -36,4 +36,7 @@ for i in data:
 
 records.insert_many(insert)
 
-os.remove(sys.argv[1])
+print('Ingestion done')
+
+# TODO: Implement different database
+
