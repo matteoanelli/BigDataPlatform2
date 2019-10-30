@@ -21,7 +21,7 @@ class sourceIngestion:
         }
         return data
 
-client = pymongo.MongoClient('mongodb+srv://tennant2:Rm2U0c1OtW3hsZWn@mysimbdp-coredms-novzr.mongodb.net/test?retryWrites=true&w=majority')
+client = pymongo.MongoClient(sys.argv[2])
 db = client.get_database('test_tenant2')
 records = db.documents_tenant2
 
