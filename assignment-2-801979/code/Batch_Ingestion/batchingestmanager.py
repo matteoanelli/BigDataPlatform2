@@ -2,6 +2,8 @@ import os
 import time
 import json
 from os.path import isfile, join
+
+
 with open('./config_user.json', "r") as read_file:
     config = json.load(read_file)
 tenants = config['tenants']
@@ -21,12 +23,9 @@ while True:
                 for file in os.listdir(dir[0]):
                     files.append(dir[0] + '/'+ file)
                     os.system('python ' + tenantsappdir + 'clientbatchingestapp_' + os.path.basename(os.path.normpath(dir[0])) + '.py "' + dir[0] + '/' + file + '" "' + mongo_url + '"')
-    for file in files:
-        os.remove(file)
-
 
 # TODO: multitreading
 # TODO: logging and test
-# TODO: microbatching    solution almost done estend second tenant
+# TODO: microbatching    done but final test neded
 # TODO: Config file done
 # TODO: second client app

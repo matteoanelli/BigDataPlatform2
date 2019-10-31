@@ -37,3 +37,9 @@ for i in data:
 records.insert_many(insert)
 
 print('Ingestion done')
+
+#TODO: revise code structure
+
+
+
+
