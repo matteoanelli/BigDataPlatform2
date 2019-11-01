@@ -7,7 +7,7 @@
     {
     "tenant_id": "tenant2",
       "password": "Rm2U0c1OtW3hsZWn",
-    "MONGO_URL": "          "
+    "MONGO_URL": "mongodb+srv://tennant2:Rm2U0c1OtW3hsZWn@mysimbdp-coredms-novzr.mongodb.net/test?retryWrites=true&w=majority"
   }
   ]
 }

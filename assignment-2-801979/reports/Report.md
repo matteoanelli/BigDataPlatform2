@@ -20,13 +20,114 @@ During the project some technologies have been explored and analysed to implemen
 
 ![](NewArchitecture.png)
 
+Regarding the batch ingestion, each custumer push the data inside a specific client directory. The fetch data component has been implemented with Apache Nifi. The basic idea is to create a workflow where the data can be validated and sent it to a common directory, the staging data directory. Along with Nifi, some other possible technologies have been analysed such as Apache Airflows. At the end, Nifi appear as the best solution to implement for some reasons: in a fast way a reproducible workflaw can be generated, it provide a suit of features such as input filters that were really useful in the assignment scenario. Eventually, it provid also some feature to do microbatching solutions. Nifi will be on the client side, that has to easily import our pre-defined workflow and set the input directory. Nifi will take care of the rest, more details later in the report. To simulate easely and quikly this part, 2 customers have been simulated as well as the output staging data directory is a local folder inside the project directory. The staging directory has been organized such that for each customer exist a sub-folder with all the related input files inside. Once the files are inside the staging directory, the manager will forward them to the relative client application. The manager implementation consist as a python script that each 30 second fetch the staging directory and forward the input files to the customers ingestion applications. The final objects of the batch ingestion pipeline before the data sink are the client application. Those are python script provided by the customers that aim to ingest the input file to the final sink. These applications are coded by the customers so that they can chose how to structure the data. The applications integrity and consistency is checked in the beginning by an expert. All the files tracking and forwarding as well as the staging directory structure is based on an client ID previously assigned so that knowing the customer id the respective folder can be identified as well as the right application can be triggered.
 
-- new architecture explain different solution 
-- platform task and client task
+Regarding the near realtime ingestion flow, the clients send messages to a Flusk endpoint. In this way the input format has been limited. More information later in the report. The message structure guarantee the platform to know the customer id in the beginning, this is used to create a different queue for each customer inside the message broker. In this way all the different messages can be listened by the right customer application, as a result, the will be pushed in the right databases. Once the messages are pushed inside the broker the manager will trigger the different customer stream ingestion applications that are consumer coded by each customer. They have to listen the messages on each customer queue and push the message inside the final data sink. The broker used is the same as in the previous assignment, the rabbitMQ solution cloudAMQP.
+
+To summarize the platform overview, the different client are managed inside the platform throughout the unique customer ID. They have some constraint to respect on the type of input file and format of input data. On the other hand, each customer can have his own database and can menage the structure of the database without restriction. 
+
+#### Platform and client tasks
+To point out in the project are the task that the platform have to perform and the one that the customers have to do. The customer have locally to install Nifi in order to import our data workflow. Moreover, the ingestion applications have to be implemented by the client. In this way, the client can have control on the data pushed as well as the platform does not need to have access on the client data. In addition, the customer has to respect the constraint imposed by the platform about the message structure.  The platform is in charge to all the scalability of the system and it has to provide the aspected level of service to all the different customers
+
 # Part 1 - Ingestion with batch
+#### Input constraint and fetchdata component
+The constraint on the input file have been done directly in Nefi, is role is to filter the file and forward them to the staging directory. The input constraint are:
+- The input file should be a CSV file
+- The maximum size allowed is 2 GB
+Thinking in a future scenario, in this way since we pass our workflow to each customer, the constraint can be modified and adapted based on different profiles. 
+
+The main structure of or **mysimbdp-fetchdata** is the following:
+
+![](Nifi.png)
+
+As we can see form the above picture, the structure is a directed graph that define some action to do. The first action is the getFile. The client has to specify the input directory, the process getFill is a listener that as soon as a file will be added inside the client input directory it will be pushed on the Nifi workflow. Once the get have been concluded successfully the input file will be removed from the directory. 
+The configuration properties are the following:
+
+![](inputConf.png)
+
+As we can see a filter on the file format has been done as well as a limit on the maximum file size has been set. As a result, the getFile process will ingest only the files that respect both the requirement. Changing those properties different custom configuration can be implemented. 
+
+The second process inside the workflow is the so called margedRecord. Set a define dimension this process will wait until the sum of the files size inside the queue will be greater that the defined threshold. After that, it will join the previous files and forward the output file to the next process. Explained this process in the micro-batching section later inside the report.
+
+The last active process is the putFile, it receive the file from the queue and it will push the file inside the pre-defined output directory. This output directory is common between all the clients. For simplicity of implementation this output is a local directory inside the assignment repository. This can be extended in some different ways, one of those could be targeting a common directory in a cloud such as google cloud. Nifi provide some complementary put method to extend this usage.
+
+Finally, some logging processes have been included in the workflow to catch different potential failure. 
+
+Two different client have been implemented inside the test environment.
+
+Following an example of the staging data directory:
+
+```
+StagingDirectory
+│
+└───tenant1
+│     └─── file011.csv
+│     └─── file012.csv
+│   
+└───tenant2
+│     └─── file011.csv
+│     └─── file012.csv
+.
+.
+```
+Where tenant1 and tenant2 aare the 2 client ID.
+
+#### Batch ingestion manager and client batch ingest applications
+The batch ingestion manager is a python script that each 30 second will fetch the content of the staging directory and it will forward the files to the respective ingest application. 
+In order to know the different ID and use the different application a configuration file has been implemented with all the information needed. 
+```
+{
+  "tenants": [{
+    "tenant_id": "tenant1",
+    "password": "XXXXXXX",
+    "MONGO_URL": "mongodb+srv://tennant1:XXXXXXX@mysimbdp-coredms-novzr.mongodb.net/test?retryWrites=true&w=majority",
+  },
+    {
+    "tenant_id": "tenant2",
+      "password": "YYYYYYYYYY",
+    "MONGO_URL": "mongodb+srv://tennant1:YYYYYYYYY@mysimbdp-coredms-novzr.mongodb.net/test?retryWrites=true&w=majority"
+  }
+  ]
+}
+
+```
+The manager call the different customer application. The clients has to know that both the input file as well as the connection url needed will be passed as argument like that:
+```   
+python clientbatchingest_tenantX.py <input_file_path> <mongo_url_connection>
+```                                                                                
+
+Knowing this the client should be able to code the ingest application without any problem. 
+To test the implementation client application have been coded.
+
+
+
+
+#### Test program
+
+#### Logging features
+
+
+
 
 # Part 2 - Near-realtime ingestsion 
 
 # Part 3 - Integration and Extension
 
 # Bonus Points
+#### Implementation of dynamic management
+#### Automatic switch to micro-batching
+
+As we mentioned in the first part of the report, Nifi provides some solutions for micro-batching. Specifically, it has been done by the mergeRecord component. The process will wait until the a trigger event occur.  The condition are:
+- The maximum number of records are 10000.
+- The maximum bin age is 180 sec, meaning that after 180 sec that the bin is inside the queue the data will be forwarded. 
+- if the maximum number of bin is greater than 10
+On the other hand, a minimum bin size of 1 MB is set so that bin with lower size will not forwarded even though some trigger events.
+
+The micro-batching avoid to send files too small. Thinking about the final gain of the automatic application of micro-batching in the assignment scenario is that the number of times the manager will call the client application will decrease during time. Following the configuration file:
+
+![](MergeRecord.png)
+
+# to do 
+- second database
+- streaming manager 
+- rabbit link in arguments
