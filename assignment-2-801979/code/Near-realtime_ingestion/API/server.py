@@ -31,25 +31,7 @@ def producer(new_records):
 # ------------------------------------ Application -----------------------------------------------
 app = Flask(__name__)
 
-
-@app.route('/document',methods=['POST'])
-def insert_one():
-    part_id = request.json['part_id']
-    ts_date = request.json['ts_date']
-    ts_time = request.json['ts_time']
-    room = request.json['room']
-
-    new_record = {
-                'part_id': int(part_id),
-                'ts_date': int(ts_date),
-                'ts_time': ts_time,
-                'room': room
-            }
-    message = producer(json.dumps(new_record))
-
-    return message
-
-@app.route('/document/insert',methods=['POST'])
+@app.route('/insert',methods=['POST'])
 def insert():
 
     if not request.is_json:
